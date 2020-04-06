@@ -85,6 +85,25 @@ class StackInfo(object):
 Extension = Enum('Extension', 'postman aws none')
 ExtensionVals = [a.name for a in Extension]
 
+
+def fixupSwagger(fileName):
+  '''
+  #
+  # API GW writes out:
+  #   url: https://dev-api.nod15c.com/{basePath}
+  #   basePath: /orders
+  #
+  # This fixes by removing the slash before the basePath variable in the URL
+  #
+  # sed -i '' 's/\/{basePath}/{basePath}/g' ./$OUT_FILE
+  '''
+  with open(fileName) as f:
+    data = f.read()
+  with open(fileName, 'w') as f:
+    f.write(data.replace("/{basePath}", "{basePath}"))
+
+
+
 def exportSwagger(si, directory, ext=Extension.none):
   ext = 'yaml'
 
@@ -117,6 +136,8 @@ def exportSwagger(si, directory, ext=Extension.none):
     body = response['body']
     for chunk in body:
       f.write(chunk.decode('utf-8'))
+
+  fixupSwagger(outPath)
 
 def exportSdk(si, directory):
   type='javascript'

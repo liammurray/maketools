@@ -33,7 +33,6 @@ SWAGGER_FILE=$(GEN_DIR)/$(SWAGGER_BASE_NAME).yaml
 	validate \
 	package \
 	deploy \
-	deploy-sam \
 	errors \
 	generated-clean \
 	output \
@@ -111,6 +110,19 @@ validate:
 # 	  --s3-bucket $(PACKAGE_OUTPUT_BUCKET)
 #
 
+ifeq "$(USE_CDK)" "true"
+
+deploy:
+	@cd ./stack && cdk deploy
+
+destroy:
+	@cd ./stack && cdk destroy
+
+package:
+	@echo "No package step for CDK (skipping)"
+
+else
+
 $(SAM_BUILD_OUTPUT_TEMPLATE): build
 	sam package \
 		--output-template-file $(SAM_BUILD_OUTPUT_TEMPLATE) \
@@ -119,13 +131,11 @@ $(SAM_BUILD_OUTPUT_TEMPLATE): build
 package: $(SAM_BUILD_OUTPUT_TEMPLATE)
 
 
-deploy-sam: $(SAM_BUILD_OUTPUT_TEMPLATE)
+deploy: $(SAM_BUILD_OUTPUT_TEMPLATE)
 	sam deploy \
 		--template-file $(SAM_BUILD_OUTPUT_TEMPLATE) \
 		--stack-name $(STACK_NAME) \
 		--capabilities CAPABILITY_NAMED_IAM
-
-deploy: deploy-sam swagger
 
 # changeset: $(SAM_BUILD_OUTPUT_TEMPLATE)
 # 	@aws cloudformation deploy \
@@ -137,6 +147,10 @@ deploy: deploy-sam swagger
 destroy:
 	aws cloudformation delete-stack \
 			--stack-name $(STACK_NAME)
+
+endif
+
+
 
 errors:
 	@aws cloudformation describe-stack-events \
