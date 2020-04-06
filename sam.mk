@@ -3,10 +3,6 @@
 
 SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-# To override
-#override MYVAR := someval
-#include....
-
 include $(SELF_DIR)util.mk
 
 $(call check_defined, STACK_NAME, stack name)
