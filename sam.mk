@@ -14,9 +14,9 @@ $(call check_defined, GEN_DIR, generated output base directory)
 # SAM_PACKAGE_TEMPLATE = .aws-sam/build/template.yaml
 
 SAM_TEMPLATE = ./template.yml
-# Final deployable CFN template (with code uri references pointing to S3 locations)
-SAM_DEPLOY_TEMPLATE = $(GEN_DIR)/.packaged.yaml
 
+# Final deployable CFN template (with code uri references pointing to S3 locations)
+SAM_DEPLOY_TEMPLATE?=$(GEN_DIR)/.packaged.yaml
 
 
 # Prefix (orders becomes orders-api.yml). Assumes file naming logic in stack.py.
