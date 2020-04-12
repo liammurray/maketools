@@ -9,7 +9,15 @@ $(call check_defined, STACK_NAME, stack name)
 $(call check_defined, PACKAGE_OUTPUT_BUCKET, lambda output bucket)
 $(call check_defined, GEN_DIR, generated output base directory)
 
-SAM_BUILD_OUTPUT_TEMPLATE = $(GEN_DIR)/.packaged.yaml
+# Intermediate template produced by sam build command.
+# We skip this and package from the SAM template (because we do labmda dist build ourselves).
+# SAM_PACKAGE_TEMPLATE = .aws-sam/build/template.yaml
+
+SAM_TEMPLATE = ./template.yml
+# Final deployable CFN template (with code uri references pointing to S3 locations)
+SAM_DEPLOY_TEMPLATE = $(GEN_DIR)/.packaged.yaml
+
+
 
 # Prefix (orders becomes orders-api.yml). Assumes file naming logic in stack.py.
 SWAGGER_BASE_NAME=$(STACK_NAME)-api
@@ -80,7 +88,7 @@ test:
 
 clean: clean-projects clean-layer
 	@rm -rf .aws-sam
-	@rm -f $$SAM_BUILD_OUTPUT_TEMPLATE
+	@rm -f $$SAM_DEPLOY_TEMPLATE
 
 
 # Add build-layer as dependency if ./layer exists
@@ -97,15 +105,6 @@ local-api:
 validate:
 	sam validate
 
-# Not used since 'sam build' redudantly re-installs
-# packages for each function from same directory.
-#
-# $(SAM_BUILD_OUTPUT_TEMPLATE): .aws-sam/build
-# 	sam package \
-# 		--output-template-file $(SAM_BUILD_OUTPUT_TEMPLATE) \
-# 	  --s3-bucket $(PACKAGE_OUTPUT_BUCKET)
-#
-
 ifeq "$(USE_CDK)" "true"
 
 deploy:
@@ -119,24 +118,25 @@ package:
 
 else
 
-$(SAM_BUILD_OUTPUT_TEMPLATE): build
+$(SAM_DEPLOY_TEMPLATE): build
 	sam package \
-		--output-template-file $(SAM_BUILD_OUTPUT_TEMPLATE) \
+		--template-file $(SAM_TEMPLATE) \
+		--output-template-file $(SAM_DEPLOY_TEMPLATE) \
 	  --s3-bucket $(PACKAGE_OUTPUT_BUCKET)
 
-package: $(SAM_BUILD_OUTPUT_TEMPLATE)
+package: $(SAM_DEPLOY_TEMPLATE)
 
 
-deploy: $(SAM_BUILD_OUTPUT_TEMPLATE)
+deploy: $(SAM_DEPLOY_TEMPLATE)
 	sam deploy \
-		--template-file $(SAM_BUILD_OUTPUT_TEMPLATE) \
+		--template-file $(SAM_DEPLOY_TEMPLATE) \
 		--stack-name $(STACK_NAME) \
 		--capabilities CAPABILITY_NAMED_IAM
 
-# changeset: $(SAM_BUILD_OUTPUT_TEMPLATE)
+# changeset: $(SAM_DEPLOY_TEMPLATE)
 # 	@aws cloudformation deploy \
 # 		--no-execute-changeset \
-# 		--template-file $(SAM_BUILD_OUTPUT_TEMPLATE) \
+# 		--template-file $(SAM_DEPLOY_TEMPLATE) \
 # 		--stack-name $(STACK_NAME) \
 # 		--capabilities CAPABILITY_NAMED_IAM
 
