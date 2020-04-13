@@ -16,6 +16,7 @@ PACKAGE := .package/$(shell node -p 'const p=require("./package.json"); `$${p.na
 	build \
 	package \
   clean \
+	lint \
   utest \
   develop \
 
@@ -29,6 +30,9 @@ clean:
 
 utest: node_modules
 	npm run test
+
+lint:
+	npm run lint
 
 # For servers (express server, etc.)
 develop: node_modules
