@@ -31,6 +31,7 @@ SWAGGER_FILE=$(GEN_DIR)/$(SWAGGER_BASE_NAME).yaml
 	build-layer \
 	clean-projects \
 	test \
+	lint \
 	clean \
 	build \
 	api \
@@ -84,6 +85,12 @@ test:
 	@set -e; for dir in $(subdirs); do \
 		cd $$dir; \
 		npm run test; \
+	 done
+
+lint:
+	@set -e; for dir in $(subdirs); do \
+		cd $$dir; \
+		npm run lint; \
 	 done
 
 clean: clean-projects clean-layer
