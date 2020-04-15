@@ -19,7 +19,7 @@ def getStackOutputDict(stackName):
   print('Getting stack output for {}'.format(stackName))
   stack = cloudformation.Stack(stackName)
   d = {}
-  for out in stack.outputs:
+  for out in stack.outputs or []:
     key = out['OutputKey']
     d[key] = out['OutputValue']
   return d
@@ -190,7 +190,7 @@ def getApexDomain(domain):
   '''
   # Handle "foo.nod15c.com" and "foo.nod15c.com."
   parts = [p for p in domain.split('.') if p]
-  return string.join(parts[-2:], '.') + '.'
+  return '.'.join(parts[-2:]) + '.'
 
 
 def getHostedZoneInfo(name="nod15c.com."):
@@ -210,7 +210,7 @@ def getHostedZoneInfo(name="nod15c.com."):
     raise Exception("Not found: {}".format(name))
 
 
-def modifyUserPoolDomainRoute53AliasEntry(domainInfo, update=True):
+def modifyUserPoolDomainRoute53AliasEntry(domainInfo, update=True, enablePrompts=True):
   '''
     Adds or removes route53 alias given domain info from StackInfo.getAuthDomainInfo()
   '''
@@ -248,6 +248,7 @@ def modifyUserPoolDomainRoute53AliasEntry(domainInfo, update=True):
       }]
   }
 
+  res=None
   if update:
     print(("Create A record Alias: {} ({}) => {}".format(domain, zoneId, alias)))
     if not enablePrompts or click.confirm('Continue?', default=False):
@@ -258,7 +259,8 @@ def modifyUserPoolDomainRoute53AliasEntry(domainInfo, update=True):
     if not enablePrompts or click.confirm('Continue?', default=False):
       res = route53client.change_resource_record_sets(
           HostedZoneId=zoneId, ChangeBatch=batch)
-  print(("Submitted (status={})".format(res['ChangeInfo']['Status'])))
+  if res:
+    print(("Submitted (status={})".format(res['ChangeInfo']['Status'])))
 
 
 
