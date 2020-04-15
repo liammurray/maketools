@@ -31,7 +31,7 @@ clean:
 utest: node_modules
 	npm run test
 
-lint:
+lint: node_modules
 	npm run lint
 
 # For servers (express server, etc.)

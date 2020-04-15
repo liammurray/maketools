@@ -17,3 +17,4 @@ __check_defined = \
 # Example:
 #
 # $(call check_defined, GIT_TOKEN, github token for client push)
+
