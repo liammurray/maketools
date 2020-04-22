@@ -178,14 +178,14 @@ generated-clean:
 
 swagger-postman:
 	@mkdir -p $(GEN_DIR)
-	@$(SELF_DIR)stack.py swagger -d $(GEN_DIR) -s $(STACK_NAME) -e postman
+	@$(SELF_DIR)/py3/stack.py swagger -d $(GEN_DIR) -s $(STACK_NAME) -e postman
 
 swagger:
 	@mkdir -p $(GEN_DIR)
-	@$(SELF_DIR)stack.py swagger -d $(GEN_DIR) -s $(STACK_NAME) -e none
+	@$(SELF_DIR)/py3/stack.py swagger -d $(GEN_DIR) -s $(STACK_NAME) -e none
 
 sdk:
 	@mkdir -p $(GEN_DIR)
-	@$(SELF_DIR)stack.py sdk -d $(GEN_DIR) -s $(STACK_NAME)
+	@$(SELF_DIR)/py3/stack.py sdk -d $(GEN_DIR) -s $(STACK_NAME)
 
 

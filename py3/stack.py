@@ -2,7 +2,7 @@
 # -*- mode: python3 -*-
 
 import click
-from python3.cfnutil import *
+from local.cfn_util import *
 
 @click.group()
 def stack():
