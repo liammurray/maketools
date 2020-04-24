@@ -52,7 +52,7 @@ def getStackInfo(stack_name):
     info = getStackNames()
     active=['CREATE_COMPLETE', 'UPDATE_COMPLETE']
     for (name, status) in info:
-      col = blue if status in active else red
+      col = blue if status in active else dim
       print(col(name), dim(status))
     return
   return getStackOutputDict(stack_name)
@@ -99,9 +99,41 @@ def ssm(stack_name, remove, prompt):
 @click.argument('stack_name', required=False)
 def info(stack_name):
   """
-    Shows app client and related info (assumes stack output names)
+    Shows stack outputs
 
-    /stack.py info global-clientcreds-dev
+    Works with any stack. Example:
+
+      /stack.py info orders-dev
+
+  """
+
+  si = getStackInfo(stack_name)
+  if not si:
+    return
+
+  print
+  dump(si)
+
+###
+#
+# COGNITO
+#
+#  ./stack.py cognito global-clientcreds-dev
+
+#
+@click.command()
+@click.argument('stack_name', required=False)
+def cognito(stack_name):
+  """
+    Shows cognito info, app client and related info (assumes stack output names)
+
+    Fetches token for FullUser test client.
+    Works only with cognito stack with following outputs:
+      PoolArn
+      PoolDomainName
+      ClientIdFullUser
+
+    /stack.py cognito global-clientcreds-dev
   """
 
   si = getStackInfo(stack_name)
@@ -132,19 +164,39 @@ def info(stack_name):
 #  https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-known-issues.html#api-gateway-known-issues-rest-apis
 
 @click.command()
-@click.option('-s', '--stack-name', default='orders', help='stack name')
 @click.option('-d', '--directory', default='.', help='output directory')
 @click.option('-e', '--ext', type=click.Choice(ExtensionVals), default=Extension.none.name, help='extention type')
+@click.argument('stack_name', required=False)
 def swagger(stack_name, directory, ext):
-  si = StackInfo(stack_name)
-  exportSwagger(si, directory, ext)
+  '''
+    Fetches swagger from API GW
+
+    Works with stack that exports:
+      ApiId
+      ApiStage
+  '''
+  si = getStackInfo(stack_name)
+  if not si:
+    return
+
+  exportSwagger(stack_name, si['ApiId'], si['ApiStage'], directory, ext)
 
 @click.command()
-@click.option('-s', '--stack-name', default='orders', help='stack name')
 @click.option('-d', '--directory', default='.', help='output directory')
+@click.argument('stack_name', required=False)
 def sdk(stack_name, directory):
-  si = StackInfo(stack_name)
-  exportSdk(si, directory)
+  '''
+    Fetches sdk from API GW (openapi generator is better)
+
+    Works with stack that exports:
+      ApiId
+      ApiStage
+  '''
+  si = getStackInfo(stack_name)
+  if not si:
+    return
+
+  exportSdk(stack_name, si['ApiId'], si['ApiStage'], directory)
 
 
 #
@@ -176,6 +228,7 @@ def route53(stack_name, remove, prompt):
 
 # stack.add_command(route53)
 stack.add_command(info)
+stack.add_command(cognito)
 stack.add_command(ssm)
 stack.add_command(swagger)
 stack.add_command(sdk)

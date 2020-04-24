@@ -80,13 +80,12 @@ def fixupSwagger(fileName):
     f.write(data.replace("/{basePath}", "{basePath}"))
 
 
-
-def exportSwagger(si, directory, ext=Extension.none):
+def exportSwagger(stackName, apiId, apiStage, directory, ext=Extension.none):
   ext = 'yaml'
 
   args = {}
-  args['restApiId'] = si.info['ApiId']
-  args['stageName'] = si.info['ApiStage']
+  args['restApiId'] = apiId
+  args['stageName'] = apiStage
   args['exportType'] = 'oas30'
   args['accepts'] = 'application/{}'.format(ext)
 
@@ -106,7 +105,7 @@ def exportSwagger(si, directory, ext=Extension.none):
   #  stackName-api.yaml
   #  stackName-api-aws.yaml
   #  stackName-api-postman.yaml
-  outName = '{}-api{}.{}'.format(si.stackName, suffix, ext)
+  outName = '{}-api{}.{}'.format(stackName, suffix, ext)
   outPath = os.path.join(directory, outName)
   print('Saving swagger: {}'.format(outPath))
   with open(outPath, 'wt') as f:
@@ -116,17 +115,17 @@ def exportSwagger(si, directory, ext=Extension.none):
 
   fixupSwagger(outPath)
 
-def exportSdk(si, directory):
+def exportSdk(stackName, apiId, apiStage, directory):
   type='javascript'
   args = {}
-  args['restApiId'] = si.info['ApiId']
-  args['stageName'] = si.info['ApiStage']
+  args['restApiId'] = apiId
+  args['stageName'] = apiStage
   args['sdkType'] = type
 
   client = boto3.client('apigateway')
   response = client.get_sdk(**args)
 
-  outName = '{}-client-{}-{}.zip'.format(si.stackName, type, si.info['ApiStage'])
+  outName = '{}-client-{}-{}.zip'.format(stackName, type, apiStage)
   outPath = os.path.join(directory, outName)
   print('Saving sdk client zip: {}'.format(outPath))
   with open(outPath, 'wb') as f:
