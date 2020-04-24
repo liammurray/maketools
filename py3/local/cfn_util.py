@@ -80,20 +80,25 @@ def fixupSwagger(fileName):
     f.write(data.replace("/{basePath}", "{basePath}"))
 
 
-def exportSwagger(stackName, apiId, apiStage, directory, ext=Extension.none):
-  ext = 'yaml'
+def exportSwagger(stackName, apiId, apiStage, directory, extension=Extension.none):
+
+  fileType='yaml'
+
+  # Try to convert (string) to enum
+  if not isinstance(extension, Extension):
+    extension = Extension[extension]
 
   args = {}
   args['restApiId'] = apiId
   args['stageName'] = apiStage
   args['exportType'] = 'oas30'
-  args['accepts'] = 'application/{}'.format(ext)
+  args['accepts'] = 'application/{}'.format(fileType)
 
   params = {}
-  if ext == Extension.aws:
+  if extension == Extension.aws:
     params['extensions'] = 'integrations'
     suffix = '-aws'
-  elif type == Extension.postman:
+  elif extension == Extension.postman:
     params['extensions'] = 'postman'
     suffix = '-postman'
   else:
@@ -105,7 +110,7 @@ def exportSwagger(stackName, apiId, apiStage, directory, ext=Extension.none):
   #  stackName-api.yaml
   #  stackName-api-aws.yaml
   #  stackName-api-postman.yaml
-  outName = '{}-api{}.{}'.format(stackName, suffix, ext)
+  outName = '{}-api{}.{}'.format(stackName, suffix, fileType)
   outPath = os.path.join(directory, outName)
   print('Saving swagger: {}'.format(outPath))
   with open(outPath, 'wt') as f:
