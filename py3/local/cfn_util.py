@@ -16,13 +16,16 @@ ssmClient = boto3.client('ssm')
 route53client = boto3.client('route53')
 
 def getStackOutputDict(stackName):
-  print('Getting stack output for {}'.format(stackName))
+  print('Getting stack output for {}...'.format(stackName))
   stack = cloudformation.Stack(stackName)
   d = {}
   for out in stack.outputs or []:
     key = out['OutputKey']
     d[key] = out['OutputValue']
   return d
+
+def getStackNames():
+  return [(s.stack_name, s.stack_status) for s in cloudformation.stacks.all()]
 
 def toYaml(ob):
   return yaml.safe_dump(ob, default_flow_style=False)
@@ -36,31 +39,8 @@ def ensureSuffix(name, s = '.yaml'):
     p = p.with_suffix(s)
   return p
 
-class StackInfo(object):
-
-  def __init__(self, stackName, cacheName=None):
-    self.stackName = stackName
-    if cacheName:
-      self.cacheName=ensureSuffix(cacheName)
-      try:
-        self.loadCache()
-      except:
-        self.info = getStackOutputDict(stackName)
-        self.saveCache()
-    else:
-      self.info = getStackOutputDict(stackName)
-
-  def saveCache(self):
-    with open(self.cacheName, 'wt') as f:
-      print(toYaml(self.info), file=f)
-
-  def loadCache(self):
-    with open(self.cacheName, 'rt') as f:
-      self.info = fromYaml(f.read())
-
-  def getUserInfo(self, key='TestClientId'):
-    clientId = self.info[key]
-    userPoolId = self.info['UserPoolId']
+def getApiClientInfo(poolArnOrId, clientId):
+    userPoolId = poolArnOrId.split('/')[-1]
     res = cognitoClient.describe_user_pool_client(
         ClientId=clientId, UserPoolId=userPoolId)
     info = res['UserPoolClient']
@@ -70,14 +50,11 @@ class StackInfo(object):
         'secret': info['ClientSecret']
     }
 
-  def getAuthDomainInfo(self):
-    domain = self.info['UserPoolDomainName']
-
+def getAuthDomainInfo(domain):
     res = cognitoClient.describe_user_pool_domain(Domain=domain)
     info = res['DomainDescription']
     dist = info['CloudFrontDistribution']
     status = info['Status']
-
     return {'name': domain, 'dist': dist, 'status': status}
 
 
@@ -90,7 +67,7 @@ def fixupSwagger(fileName):
   '''
   #
   # API GW writes out:
-  #   url: https://dev-api.nod15c.com/{basePath}
+  #   url: https://api-dev.nod15c.com/{basePath}
   #   basePath: /orders
   #
   # This fixes by removing the slash before the basePath variable in the URL
@@ -158,9 +135,11 @@ def exportSdk(si, directory):
       f.write(chunk)
 
 
-def putSsm(userInfo, base='/api/clientcreds'):
+def putSsm(userInfo, enablePrompts=True, base='/api/clientcreds'):
   '''
-    Saves user info (from StackInfo.getUserInfo) to SSM
+    Saves api client info (from getApiClientInfo) to SSM
+
+    Used for test apps that act as client hitting services.
   '''
   name = '{}/{}'.format(base, userInfo['name'])
   clientId = userInfo['id']
@@ -176,7 +155,7 @@ def putSsm(userInfo, base='/api/clientcreds'):
         Overwrite=True)
 
 
-def deleteSsm(userInfo, base='/api/clientcreds'):
+def deleteSsm(userInfo, enablePrompts=True, base='/api/clientcreds'):
   name = '{}/{}'.format(base, userInfo['name'])
   print(("Removing SSM secret for {}".format(name)))
   if not enablePrompts or click.confirm('Continue?', default=False):
@@ -212,7 +191,7 @@ def getHostedZoneInfo(name="nod15c.com."):
 
 def modifyUserPoolDomainRoute53AliasEntry(domainInfo, update=True, enablePrompts=True):
   '''
-    Adds or removes route53 alias given domain info from StackInfo.getAuthDomainInfo()
+    Adds or removes route53 alias given domain info from getAuthDomainInfo()
   '''
   domain = domainInfo['name']
   apex = getApexDomain(domain)

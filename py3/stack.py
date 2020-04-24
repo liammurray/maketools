@@ -3,6 +3,60 @@
 
 import click
 from local.cfn_util import *
+from local.console_util import *
+import base64
+import pycurl
+from io import BytesIO
+from urllib.parse import urlencode
+from oauthlib.oauth2 import BackendApplicationClient
+from requests.auth import HTTPBasicAuth
+from requests_oauthlib import OAuth2Session
+
+def getToken(token_url, client_id, client_secret, scope):
+  '''
+    Retrieves token from OAuth2 token endpoint
+  '''
+  auth = HTTPBasicAuth(client_id, client_secret)
+  client = BackendApplicationClient(client_id=client_id)
+  oauth = OAuth2Session(client=client, scope=scope)
+  token = oauth.fetch_token(token_url=token_url, auth=auth)
+  return token
+
+def getTokenPyCurl(endpoint, authToken, scope):
+  '''
+    Retrieves token from OAuth2 token endpoint
+  '''
+  curl = pycurl.Curl()
+  curl.setopt(curl.VERBOSE, True)
+  curl.setopt(curl.URL, endpoint)
+  curl.setopt(curl.HTTPHEADER, [
+    "Authorization: Basic {}".format(authToken),
+    "Content-Type: application/x-www-form-urlencoded"
+  ])
+
+  postData = {
+    "grant_type": "client_credentials",
+    "scope": scope
+  }
+  curl.setopt(curl.POSTFIELDS, urlencode(postData))
+  buf = BytesIO()
+  curl.setopt(curl.WRITEDATA, buf)
+  curl.perform()
+  code = curl.getinfo(pycurl.RESPONSE_CODE)
+  curl.close()
+  return (code, buf.getvalue().decode('utf-8'))
+
+def getStackInfo(stack_name):
+  if not stack_name:
+    print('Please specifiy a stack name')
+    info = getStackNames()
+    active=['CREATE_COMPLETE', 'UPDATE_COMPLETE']
+    for (name, status) in info:
+      col = blue if status in active else red
+      print(col(name), dim(status))
+    return
+  return getStackOutputDict(stack_name)
+
 
 @click.group()
 def stack():
@@ -18,18 +72,23 @@ def stack():
 @click.command()
 @click.option('-p', '--prompt/--no-prompt', default=True, help='enable prompts')
 @click.option('-r', '--remove', is_flag=True, help='Remove instead of update')
-@click.option('-s', '--stack-name', default='orders', help='stack name')
+@click.argument('stack_name', required=False)
 def ssm(stack_name, remove, prompt):
+  """
+    Adds or removes ssm entry for test client ID (FullUser)
+  """
 
-  global enablePrompts
-  enablePrompts = prompt
+  si = getStackInfo(stack_name)
+  if not si:
+    return
 
-  si = StackInfo(stack_name)
-  userInfo = si.getUserInfo()
+  ci = getApiClientInfo(si['PoolArn'], si['ClientIdFullUser'])
+  dump(ci)
+
   if remove:
-    deleteSsm(userInfo)
+    deleteSsm(ci, prompt)
   else:
-    putSsm(userInfo)
+    putSsm(ci, prompt)
 
 
 #
@@ -37,14 +96,36 @@ def ssm(stack_name, remove, prompt):
 #
 
 @click.command()
-@click.option('-s', '--stack-name', default='orders', help='stack name')
-@click.option('-c', '--cache-name', default=None, help='stack name')
-def info(stack_name, cache_name):
+@click.argument('stack_name', required=False)
+def info(stack_name):
+  """
+    Shows app client and related info (assumes stack output names)
 
-  si = StackInfo(stack_name, cache_name)
+    /stack.py info global-clientcreds-dev
+  """
 
-  print("Auth domain info", si.getAuthDomainInfo())
-  print("User info", si.getUserInfo())
+  si = getStackInfo(stack_name)
+  if not si:
+    return
+
+  print(bold('Client info'))
+
+  ci = getApiClientInfo(si['PoolArn'], si['ClientIdFullUser'])
+  dump(ci)
+
+  print(bold('Token server info'))
+  adi = getAuthDomainInfo(si['PoolDomainName'])
+  dump(adi)
+
+  endpoint='https://{}/oauth2/token'.format(adi['name'])
+
+  try:
+    token = getToken(endpoint, ci['id'], ci['secret'], ['orders/rw'])
+    print(token)
+  except Exception as e:
+    print(e)
+    if 'invalid_grant' in str(e):
+      print(red('Hint: Go to Cognito->App Client Settings and toggle "Enabled Identity Providers"'))
 
 
 # See swagger issues here:
@@ -93,7 +174,7 @@ def route53(stack_name, remove, prompt):
   modifyUserPoolDomainRoute53AliasEntry(di, not remove)
 
 
-stack.add_command(route53)
+# stack.add_command(route53)
 stack.add_command(info)
 stack.add_command(ssm)
 stack.add_command(swagger)

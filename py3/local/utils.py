@@ -9,9 +9,6 @@ def loadYaml(fileName):
   with open(fileName, "r") as stream:
     return yaml.load(stream, Loader=yaml.FullLoader)
 
-def dump(ob):
-  # Use YAML for raw output of dictionary
-  print(yaml.safe_dump(ob, default_flow_style=False))
 
 def nest(path, val={}):
   """

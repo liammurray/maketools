@@ -13,6 +13,10 @@ init()
 def asYaml(ob):
   return yaml.safe_dump(ob, default_flow_style=False)
 
+def dump(ob):
+  # Use YAML for raw output of dictionary
+  print(yaml.safe_dump(ob, default_flow_style=False))
+
 
 def get_value_or_stdin(ctx, param, value):
   '''
