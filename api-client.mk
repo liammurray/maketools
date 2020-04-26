@@ -8,13 +8,18 @@ include $(SELF_DIR)/util.mk
 $(call check_defined, STACK_NAME, stack name)
 $(call check_defined, GEN_DIR, generated output directory)
 $(call check_defined, CLIENT_CONFIG_DIR, openapi generator config base directory)
+$(call check_defined, GITHUB_OWNER, github owner for repo)
 
 # For openapi-generator (ordersapi-generator list to see others)
 # You can change this and run "make client" to experiment
 CLIENT_TYPE ?= typescript-axios
+# Repo name
 CLIENT_NAME ?= $(STACK_NAME)-client-axios
 CLIENT_CONFIG = $(CLIENT_CONFIG_DIR)/$(CLIENT_NAME).yaml
 CLIENT_OUTPUT_DIR = $(GEN_DIR)/$(CLIENT_NAME)
+# Needed for fixup in package.json for publish
+CLIENT_GITHUB_REPO=github:$(GITHUB_OWNER)/$(CLIENT_NAME)
+
 
 SWAGGER_BASE_NAME=$(STACK_NAME)-api
 SWAGGER_FILE=$(GEN_DIR)/$(SWAGGER_BASE_NAME).yaml
