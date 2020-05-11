@@ -44,7 +44,8 @@ SWAGGER_FILE=$(GEN_DIR)/$(SWAGGER_BASE_NAME).yaml
 	output-table \
 	sdk \
 	swagger \
-	swagger-postman
+	swagger-postman \
+	version-dev
 
 SHELL=/usr/bin/env bash -o pipefail
 
@@ -188,4 +189,7 @@ sdk:
 	@mkdir -p $(GEN_DIR)
 	@$(SELF_DIR)/py3/stack.py sdk -d $(GEN_DIR) $(STACK_NAME)
 
+version-dev:
+	$(eval ID=$(shell $(MAKETOOLS)/getStackOutputVal.sh $(STACK_NAME) ApiId))
+	aws apigateway get-stages --rest-api-id $(ID) --query 'item[?stageName==`dev`]'
 
