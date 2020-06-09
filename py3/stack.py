@@ -146,7 +146,7 @@ def cognito(stack_name):
   dump(ci)
 
   print(bold('Token server info'))
-  adi = getAuthDomainInfo(si['PoolDomainName'])
+  adi = getAuthDomainInfo(si['ClientCredentialsDevDomainName'])
   dump(adi)
 
   endpoint='https://{}/oauth2/token'.format(adi['name'])
