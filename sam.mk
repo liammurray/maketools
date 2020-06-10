@@ -1,6 +1,10 @@
 # -*- mode: Makefile -*-
 #
-
+#
+# For SAM or CDK targets (should be called samOrCdk.mk)
+# CDK is used by defining:
+#   CDK_INFRA_DIR
+#
 SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
 include $(SELF_DIR)util.mk
@@ -113,16 +117,21 @@ local-api:
 validate:
 	sam validate
 
-ifeq "$(USE_CDK)" "true"
+ifneq ($(CDK_INFRA_DIR),)
 
-deploy:
-	@cd ./stack && cdk deploy
+$(CDK_INFRA_DIR)/dist:
+	@cd $(CDK_INFRA_DIR) && $(MAKE) build
 
-destroy:
-	@cd ./stack && cdk destroy
+build-cdk: $(CDK_INFRA_DIR)/dist
+
+deploy: $(CDK_INFRA_DIR)/dist
+	@cd $(CDK_INFRA_DIR) && npm run cdk deploy $(CDK_DEPLOY_TARGET)
+
+destroy: $(CDK_INFRA_DIR)/dist
+	@cd $(CDK_INFRA_DIR) && npm run cdk destroy $(CDK_DEPLOY_TARGET)
 
 package:
-	@echo "No package step for CDK (skipping)"
+	@cd $(CDK_INFRA_DIR) && npm run cdk synth $(CDK_DEPLOY_TARGET)
 
 else
 
